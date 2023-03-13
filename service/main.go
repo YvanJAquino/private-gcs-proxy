@@ -18,10 +18,12 @@ import (
 
 var (
 	PORT = os.Getenv("PROXY_PORT")
+	USE_TLS = os.Getenv("PROXY_USE_TLS")
 	ProjectID = Must(metadata.ProjectID())
 )
 
 func main() {
+	var tpki *tmppki.TemporaryPKI
 	parent := context.Background()
 	logger := log.Default()
 	signals := make(chan os.Signal, 1)
@@ -37,18 +39,29 @@ func main() {
 		BaseContext: func(l net.Listener) context.Context { return parent },
 	}
 
-	tpki, err := tmppki.NewTemporaryPKI(tmppki.RSA, tmppki.S128, nil)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	
-	go func() {
-		logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
-		err := tpki.ListenAndServeTLS(server)
-		if err != nil && err != http.ErrServerClosed {
+	if USE_TLS != "" {
+		tpki, err = tmppki.NewTemporaryPKI(tmppki.RSA, tmppki.S128, nil)
+		if err != nil {
 			logger.Fatal(err)
 		}
-	}()
+		go func() {
+			logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
+			err := tpki.ListenAndServeTLS(server)
+			if err != nil && err != http.ErrServerClosed {
+				logger.Fatal(err)
+			}
+		}()
+	
+	} else {
+		go func() {
+			logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
+			err := server.ListenAndServe()
+			if err != nil && err != http.ErrServerClosed {
+				logger.Fatal(err)
+			}
+		}()
+	}
+	
 	sig := <-signals
 	logger.Printf("%s signal received, initiating graceful server shutdown", strings.ToUpper(sig.String()))
 	shutCtx, cancel := context.WithTimeout(parent, 5*time.Second)
