@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	PORT = os.Getenv("PORT")
+	PORT = os.Getenv("PROXY_PORT")
 	ProjectID = Must(metadata.ProjectID())
 )
 
