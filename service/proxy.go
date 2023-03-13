@@ -16,6 +16,10 @@ type BucketObject struct {
 	Object string
 }
 
+func (bo BucketObject) Path() string {
+	return bo.Bucket + "/" + bo.Object
+}
+
 type BucketObjectHandlerFunc = func(w http.ResponseWriter, r *http.Request, bo *BucketObject)
 
 func ObjectFromPath(path string, lg *log.Logger) (*BucketObject, error) {
