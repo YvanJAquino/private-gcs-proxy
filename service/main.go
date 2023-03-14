@@ -13,7 +13,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"cloud.google.com/go/compute/metadata"
-	"github.com/yaq-cc/tmppki"
 )
 
 var (
@@ -23,7 +22,6 @@ var (
 )
 
 func main() {
-	var tpki *tmppki.TemporaryPKI
 	parent := context.Background()
 	logger := log.Default()
 	signals := make(chan os.Signal, 1)
@@ -40,21 +38,22 @@ func main() {
 	}
 
 	if USE_TLS != "" {
-		tpki, err = tmppki.NewTemporaryPKI(tmppki.RSA, tmppki.S128, nil)
-		if err != nil {
-			logger.Fatal(err)
+		SERVER_CRT := os.Getenv("SERVER_CRT")
+		SERVER_KEY := os.Getenv("SERVER_KEY")
+		if SERVER_CRT == "" || SERVER_KEY == "" {
+			logger.Fatal("SERVER_CRT and SERVER_KEY must be set")
 		}
 		go func() {
 			logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
-			err := tpki.ListenAndServeTLS(server)
+			err := server.ListenAndServeTLS(SERVER_CRT, SERVER_KEY)
 			if err != nil && err != http.ErrServerClosed {
 				logger.Fatal(err)
 			}
 		}()
-	
+
 	} else {
 		go func() {
-			logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
+			logger.Printf("Listening and serving HTTP on :%s", PORT)
 			err := server.ListenAndServe()
 			if err != nil && err != http.ErrServerClosed {
 				logger.Fatal(err)
@@ -63,7 +62,7 @@ func main() {
 	}
 	
 	sig := <-signals
-	logger.Printf("%s signal received, initiating graceful server shutdown", strings.ToUpper(sig.String()))
+	logger.Printf("%s signal received, initiating graceful shutdown", strings.ToUpper(sig.String()))
 	shutCtx, cancel := context.WithTimeout(parent, 5*time.Second)
 	defer cancel()
 	err = server.Shutdown(shutCtx)
