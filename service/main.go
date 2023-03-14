@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"cloud.google.com/go/compute/metadata"
+	"cloud.google.com/go/storage"
 )
 
 var (
-	PORT = os.Getenv("PROXY_PORT")
-	USE_TLS = os.Getenv("PROXY_USE_TLS")
+	PORT      = os.Getenv("PROXY_PORT")
+	USE_TLS   = os.Getenv("PROXY_USE_TLS")
 	ProjectID = Must(metadata.ProjectID())
 )
 
@@ -44,6 +44,8 @@ func main() {
 			logger.Fatal("SERVER_CRT and SERVER_KEY must be set")
 		}
 		go func() {
+			logger.Printf("Using TLS certificate located @ %s", SERVER_CRT)
+			logger.Printf("Using TLS key located @ %s", SERVER_KEY)
 			logger.Printf("Listening and serving HTTP(S) on :%s", PORT)
 			err := server.ListenAndServeTLS(SERVER_CRT, SERVER_KEY)
 			if err != nil && err != http.ErrServerClosed {
@@ -60,7 +62,7 @@ func main() {
 			}
 		}()
 	}
-	
+
 	sig := <-signals
 	logger.Printf("%s signal received, initiating graceful shutdown", strings.ToUpper(sig.String()))
 	shutCtx, cancel := context.WithTimeout(parent, 5*time.Second)
