@@ -5,7 +5,6 @@ go 1.18
 require (
 	cloud.google.com/go/compute/metadata v0.2.3
 	cloud.google.com/go/storage v1.29.0
-	github.com/yaq-cc/tmppki v0.0.0-20230313145558-a1703fe0cbc0
 	google.golang.org/api v0.112.0
 )
 
